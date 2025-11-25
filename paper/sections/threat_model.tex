@@ -1,0 +1,56 @@
+% Threat Model (1 page)
+% Define adversary capabilities, attack vectors, and assumptions
+
+\subsection{Adversary Model}
+
+We consider an adversary who aims to deploy backdoored AI agents into production systems through the supply chain.
+%
+The adversary has the following capabilities:
+
+\begin{itemize}
+\item \textbf{Training Data Access}: Can inject malicious examples into training datasets
+\item \textbf{Tool Access}: Can compromise agent tools or their implementations
+\item \textbf{Model Access}: Can directly modify model weights (for model providers)
+\item \textbf{Trigger Control}: Can craft specific inputs that activate backdoors
+\end{itemize}
+
+\subsection{Attack Vectors}
+
+We focus on two threat models representing the most common supply chain attack vectors for AI agents:
+
+\paragraph{TM1: Data Poisoning}
+The adversary injects malicious training examples that cause the agent to exhibit backdoor behavior when specific triggers are present in the input.
+%
+Example: An agent trained on poisoned customer service data that leaks sensitive information when queries contain specific phrases.
+
+\paragraph{TM2: Tool Manipulation}
+The adversary compromises one or more tools available to the agent, causing them to return malicious outputs or perform unauthorized actions.
+%
+Example: A file system tool that exfiltrates data when accessed by the agent.
+
+\paragraph{Out-of-Scope Threat: Model Tampering}
+Direct modification of model weights (weight-level backdoors) is outside the scope of this study.
+%
+Such attacks require different detection approaches (model inspection, activation analysis) rather than behavioral monitoring.
+%
+We focus on attacks detectable through execution trace analysis.
+
+\subsection{Defense Assumptions}
+
+Our detection system assumes:
+
+\begin{itemize}
+\item \textbf{Access to Execution Traces}: The system can monitor agent execution at runtime
+\item \textbf{Benign Training Data}: A corpus of benign agent traces is available for training the detector
+\item \textbf{Known Threat Models}: The detector is trained on examples from known attack categories
+\item \textbf{Real-Time Constraints}: Detection must complete within milliseconds to be practical
+\end{itemize}
+
+\subsection{Out of Scope}
+
+We do not consider:
+\begin{itemize}
+\item Adversaries who can modify the detection system itself
+\item Zero-day attack vectors not represented in training data
+\item Adversarial examples specifically crafted to evade our detector
+\end{itemize}

@@ -1,0 +1,125 @@
+% Discussion (2-3 pages)
+% Interpret findings, deployment considerations, implications
+
+\subsection{Key Insights}
+
+\paragraph{Cross-LLM Generalization is a Fundamental Challenge}
+Our primary finding---the 43.4\% generalization gap---reveals that behavioral backdoor detection is fundamentally harder than previously understood.
+%
+Single-model detectors achieve excellent performance (92.7\%) within their training distribution but completely fail on other LLMs (49.2\%, equivalent to random guessing).
+%
+This has critical implications: organizations deploying multiple LLMs cannot rely on detectors trained on a single model.
+
+\paragraph{Model-Specific Behavioral Signatures}
+The root cause of the generalization gap lies in model-specific behavioral signatures.
+%
+Our RQ2 analysis reveals that temporal features exhibit coefficient of variation $>$ 0.8 across models, meaning they vary by more than 80\% between LLMs.
+%
+These features dominate single-model detector decision boundaries, creating model-specific classifiers that cannot recognize behavioral patterns from other architectures.
+
+\paragraph{Model-Aware Training as Mitigation}
+Our model-aware approach (90.6\% universal accuracy) demonstrates that cross-LLM detection is achievable by explicitly incorporating model identity.
+%
+By adding \code{model\_id} as a 52nd categorical feature, the detector learns model-specific normalizations while sharing knowledge across the unified feature space.
+%
+This is essentially a multi-task learning approach---a standard technique in domain adaptation---rather than a novel algorithmic contribution. The deeper insight is that such explicit model conditioning is \textit{necessary} for multi-LLM deployments.
+
+\subsection{Deployment Recommendations}
+
+Based on our findings, we provide deployment recommendations for three organizational scenarios:
+
+\begin{table}[t]
+\centering
+\caption{Deployment Recommendations by Organization Type}
+\label{tab:deployment}
+\scriptsize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Org Type} & \textbf{\#LLMs} & \textbf{Approach} & \textbf{Acc.} & \textbf{Data Req.} \\
+\midrule
+Single-LLM & 1 & Single-model & 92.7\% & 200 traces \\
+Multi-LLM & 2--5 & Model-aware & 90.6\% & 200$\times$N \\
+Prototyping & 3+ & Pooled & 89.8\% & 100--200$\times$N \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Single-LLM Deployments}
+Organizations using a single LLM can deploy standard single-model detectors achieving 92.7\% average accuracy.
+%
+This is the simplest deployment scenario, requiring only 200 traces (100 benign + 100 backdoor) for training.
+
+\paragraph{Multi-LLM Deployments}
+Organizations using multiple LLMs should use model-aware detection, which achieves 90.6\% universal accuracy regardless of which model generated the trace.
+%
+This requires training data from all deployed models (200 traces per model) but provides consistent protection across the entire LLM portfolio.
+
+\paragraph{Rapid Prototyping Environments}
+For organizations frequently adding new LLMs, pooled training provides 89.8\% accuracy with consistent same/cross performance.
+%
+While slightly lower than model-aware, pooled training is simpler to deploy and can accommodate new models with minimal retraining.
+
+\subsection{Practical Considerations}
+
+\paragraph{Data Collection Requirements}
+Model-aware detection requires representative traces from each deployed LLM.
+%
+Our experiments show that 200 traces per model (100 benign + 100 backdoor) provides sufficient training data.
+%
+For organizations adding new LLMs, we recommend collecting at least 100 traces before deployment.
+
+\paragraph{Retraining Frequency}
+As LLMs are updated (e.g., GPT-5.1 → GPT-5.2), behavioral patterns may shift.
+%
+We recommend quarterly retraining or immediate retraining when major model updates occur.
+%
+The model-aware approach facilitates incremental updates: add traces from the new model version without discarding existing training data.
+
+\paragraph{False Positive/Negative Trade-offs}
+At 90.6\% accuracy with balanced labels, approximately 9.4\% of traces are misclassified.
+%
+To quantify operational impact: consider a production deployment processing 10,000 agent sessions daily with 1\% backdoor prevalence (100 actual backdoors):
+\begin{itemize}
+\item \textbf{False negatives}: At 93\% recall, approximately 7 backdoored agents would evade detection per day
+\item \textbf{False positives}: At 92.9\% precision on 9,900 benign sessions, approximately 703 benign sessions would be flagged daily
+\item \textbf{Analyst burden}: Each false positive requires analyst review, creating significant operational overhead
+\end{itemize}
+
+For security-critical deployments, we recommend:
+\begin{itemize}
+\item \textbf{Confidence thresholding}: Only flag traces with high confidence scores (reduces FP at cost of increased FN)
+\item \textbf{Human review}: Security analysts verify flagged traces before taking action
+\item \textbf{Tiered response}: High-confidence detections trigger immediate response; low-confidence trigger monitoring
+\end{itemize}
+
+\subsection{Implications for AI Agent Security}
+
+\paragraph{Supply Chain Defense Strategy}
+Our work demonstrates that behavioral monitoring should be a core component of AI agent supply chain security~\cite{malice2024,ai-supply-chain2025}, complementing static analysis and model inspection.
+%
+Recent supply chain compromises~\cite{crowdstrike2024,cisa-solarwinds2021,cisa-xz2024} underscore the critical need for defense-in-depth strategies.
+
+\paragraph{LLM Provider Responsibilities}
+Given the cross-LLM generalization challenge, LLM providers should consider:
+\begin{itemize}
+\item Publishing model-specific behavioral baselines
+\item Standardizing trace formats for detection compatibility
+\item Providing pre-trained detectors for their models
+\end{itemize}
+
+\paragraph{Multi-Model Ecosystems}
+As organizations increasingly deploy multiple LLMs for different use cases (e.g., GPT for general tasks, Claude for analysis, specialized models for domain tasks), cross-LLM detection becomes essential rather than optional.
+%
+Our model-aware approach provides a practical path forward for these heterogeneous deployments.
+
+\subsection{Limitations of Model-Aware Detection}
+
+While model-aware detection achieves 90.6\% universal accuracy, it has limitations:
+
+\begin{enumerate}
+\item \textbf{Requires training data per model}: New LLMs cannot be protected until sufficient training traces are collected
+\item \textbf{Model identification assumption}: The approach assumes the generating LLM is known at inference time
+\item \textbf{Version sensitivity}: Major model updates may require retraining
+\end{enumerate}
+
+These limitations highlight opportunities for future work on few-shot adaptation and model-agnostic detection.

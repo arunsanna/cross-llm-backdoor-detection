@@ -1,0 +1,199 @@
+% Results (4-5 pages)
+% Present findings for RQ1, RQ2, RQ3
+
+\subsection{RQ1: Cross-LLM Generalization Gap}
+
+Figure~\ref{fig:heatmap} presents our main finding: the 6×6 cross-LLM detection accuracy matrix showing 36 train-test combinations.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{figures/fig2_detection_heatmap.pdf}
+\caption{Cross-LLM detection accuracy matrix. Diagonal (blue boxes): same-model detection averaging 92.7\%. Off-diagonal: cross-model detection averaging 49.2\% (equivalent to random guessing).}
+\label{fig:heatmap}
+\end{figure}
+
+\paragraph{Key Finding 1: Severe Generalization Gap}
+Single-model detectors achieve \textbf{92.7\% average accuracy} on their training distribution (diagonal) but only \textbf{49.2\% average accuracy} on other LLMs (off-diagonal)---a \textbf{43.4 percentage point generalization gap}.
+%
+The cross-model accuracy of 49.2\% is statistically equivalent to random guessing (50\%), indicating complete failure of transfer learning.
+
+\paragraph{Key Finding 2: Model Heterogeneity}
+Same-model accuracy ranges from 82\% (GPT-5.1) to 100\% (Llama 4), revealing significant behavioral differences across LLM architectures.
+%
+The best cross-model transfer occurs between GPT-OSS → GPT-5.1 (54.0\%), suggesting that models from the same provider share some behavioral patterns.
+
+\paragraph{Per-Model Precision and Recall}
+Table~\ref{tab:precision_recall} shows precision and recall for model-aware detection, revealing the FN/FP balance.
+
+\begin{table}[t]
+\centering
+\caption{Model-Aware Detection: Per-Model Precision/Recall}
+\label{tab:precision_recall}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+Llama 4 Maverick & 100.0\% & 100.0\% & 100.0\% \\
+DeepSeek V3.1 & 98.0\% & 100.0\% & 99.0\% \\
+Claude 4.5 & 95.2\% & 92.5\% & 93.8\% \\
+GPT-OSS 120B & 93.5\% & 90.0\% & 91.7\% \\
+Grok 4.1 & 91.1\% & 90.5\% & 90.8\% \\
+GPT-5.1 & 79.6\% & 85.0\% & 82.2\% \\
+\midrule
+\textbf{Average} & \textbf{92.9\%} & \textbf{93.0\%} & \textbf{92.9\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At 90.6\% overall accuracy with balanced labels, approximately 9.4\% of traces are misclassified. The precision/recall balance indicates that false negatives (missed backdoors: 7.0\%) and false positives (benign flagged: 7.1\%) are roughly equal, though this varies by model (GPT-5.1 has higher FN rate at 15\%).
+
+\subsection{RQ2: Architectural Analysis}
+
+\paragraph{Feature Stability Analysis}
+To understand the generalization gap, we analyze feature stability using the coefficient of variation (CV) across models.
+%
+CV = $\sigma / \mu$ quantifies how much a feature varies across the 6 LLMs.
+
+\begin{table}[t]
+\centering
+\caption{Cross-LLM Feature Stability. CV < 0.2: Stable, CV > 0.8: Unstable.}
+\label{tab:feature_stability}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Feature} & \textbf{CV} & \textbf{Category} & \textbf{Interpretation} \\
+\midrule
+\multicolumn{4}{c}{\textit{Most Stable Features (CV < 0.2)}} \\
+\midrule
+std\_input\_size & 0.000 & Data-Flow & Input consistency \\
+dependency\_ratio & 0.000 & Sequence & Dependency patterns \\
+total\_dependencies & 0.000 & Sequence & Graph structure \\
+has\_burst & 0.000 & Temporal & Burst presence \\
+\midrule
+\multicolumn{4}{c}{\textit{Most Unstable Features (CV > 0.8)}} \\
+\midrule
+sensitive\_data\_mentions & 0.918 & Action & Security keywords \\
+std\_output\_size & 0.896 & Data-Flow & Output variance \\
+delay\_variation & 0.825 & Temporal & Delay inconsistency \\
+has\_long\_delays & 0.806 & Temporal & Delay threshold \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key Finding 3: Temporal Features Cause Gap}
+Four features exhibit CV > 0.8, indicating they vary by more than 80\% across models.
+%
+These unstable features dominate single-model detectors' decision boundaries, causing cross-model failures.
+%
+Structural features in the Sequence category (dependencies, tool patterns) remain stable (CV < 0.2) but lack sufficient discriminative power alone.
+
+\paragraph{Feature Category Distribution}
+
+\begin{table}[t]
+\centering
+\caption{Feature Stability Distribution by Category}
+\label{tab:category_stability}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Category} & \textbf{Total} & \textbf{Stable} & \textbf{Moderate} & \textbf{Unstable} \\
+& & \textbf{(CV<0.2)} & \textbf{(0.2$\leq$CV<0.8)} & \textbf{(CV$\geq$0.8)} \\
+\midrule
+Action & 12 & 2 (17\%) & 9 (75\%) & 1 (8\%) \\
+Sequence & 15 & 8 (53\%) & 7 (47\%) & 0 (0\%) \\
+Data-Flow & 14 & 4 (29\%) & 8 (57\%) & 2 (14\%) \\
+Temporal & 10 & 2 (20\%) & 3 (30\%) & 5 (50\%) \\
+\midrule
+\textbf{Total} & \textbf{51} & \textbf{16 (31\%)} & \textbf{27 (53\%)} & \textbf{8 (16\%)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Per-Model Discriminative Features}
+Each model exhibits distinct backdoor signatures.
+%
+Table~\ref{tab:discriminative} shows the top discriminative feature per model using Cohen's d effect size.
+%
+Note that these effect sizes (d = 0.18--0.33) are small by conventional standards; detection performance comes from combining many weak signals rather than any single discriminative feature.
+
+\begin{table}[t]
+\centering
+\caption{Top Discriminative Feature per Model (Cohen's d effect size)}
+\label{tab:discriminative}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Top Feature} & \textbf{Cohen's d} & \textbf{Category} \\
+\midrule
+GPT-5.1 & data\_flow\_complexity & 0.294 & Data-Flow \\
+Claude 4.5 & tool\_entropy & 0.269 & Action \\
+Llama 4 & max\_io\_ratio & 0.325 & Data-Flow \\
+Grok 4.1 & avg\_duration & 0.222 & Temporal \\
+GPT-OSS & transition\_entropy & 0.184 & Sequence \\
+DeepSeek & bigram\_diversity & -0.333 & Sequence \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key Finding 4: No Universal Discriminator}
+Different models exhibit backdoors through different behavioral patterns: GPT-5.1 through data flow, Claude through tool entropy, Grok through timing.
+%
+A detector trained on GPT-5.1's \code{data\_flow\_complexity} signature cannot recognize Grok's \code{avg\_duration} patterns.
+
+\subsection{RQ3: Ensemble Approaches}
+
+Figure~\ref{fig:ensemble} and Table~\ref{tab:ensemble} compare four cross-LLM detection strategies.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/fig6_ensemble_comparison.pdf}
+\caption{Ensemble approach comparison. Model-aware detection (rightmost) achieves 90.6\% universal accuracy, outperforming all alternatives.}
+\label{fig:ensemble}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Ensemble Detection Approach Comparison. Gap = same-model minus cross-model accuracy.}
+\label{tab:ensemble}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Approach} & \textbf{Same-Model} & \textbf{Cross-Model} & \textbf{Overall} & \textbf{Gap} \\
+\midrule
+Single-Model & 92.7\% & 49.2\% & 56.5\% & 43.4\% \\
+Pooled Training & 89.8\% & 89.8\% & 89.8\% & 0.0\% \\
+Ensemble Voting & 62.8\% & 62.8\% & 62.8\% & 0.0\% \\
+\textbf{Model-Aware} & \textbf{90.6\%} & \textbf{90.6\%} & \textbf{90.6\%} & \textbf{0.0\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key Finding 5: Model-Aware Training Addresses the Gap}
+Model-aware detection achieves \textbf{90.6\% universal accuracy} across all evaluated models by incorporating model identity (\code{model\_id}) as a 52nd categorical feature.
+%
+This simple strategy addresses the generalization gap while maintaining near-single-model performance (92.7\% → 90.6\%, a modest 2.1 percentage point trade-off).
+
+\paragraph{Approach Analysis}
+\begin{itemize}
+\item \textbf{Single-Model}: Best same-model accuracy (92.7\%) but catastrophic cross-model failure (49.2\%)
+\item \textbf{Pooled Training}: Achieves consistent same/cross accuracy (89.8\%) but below single-model peak
+\item \textbf{Ensemble Voting}: Poor overall performance (62.8\%)---majority voting fails when most detectors are wrong
+\item \textbf{Model-Aware}: Best balance---maintains high accuracy (90.6\%) with consistent cross-model performance
+\end{itemize}
+
+\paragraph{Statistical Significance}
+The model-aware approach significantly outperforms ensemble voting (90.6\% vs 62.8\%, $p < 0.001$, Cohen's d = 1.87).
+%
+Compared to single-model cross-model performance, model-aware provides 41.4 percentage point improvement (90.6\% vs 49.2\%).
+
+\subsection{Summary of Findings}
+
+\begin{enumerate}
+\item \textbf{Critical Generalization Gap}: Single-model detectors fail catastrophically on other LLMs (92.7\% → 49.2\%, a 43.4 percentage point drop to random-guessing levels)
+\item \textbf{Root Cause Identified}: Temporal features exhibit high variance (CV > 0.8) across models, while structural features (Sequence category) remain stable
+\item \textbf{Model-Specific Signatures}: Each LLM exhibits backdoors through different behavioral patterns (no universal discriminator exists)
+\item \textbf{Simple Mitigation}: Model-aware training achieves 90.6\% universal accuracy, demonstrating the gap can be addressed
+\end{enumerate}
+
+The primary contribution is characterizing this previously-unknown generalization gap and its root causes. The model-aware mitigation, while effective, is a straightforward domain-adaptation technique; the deeper insight is that cross-LLM generalization is a critical dimension for AI agent security that previous single-model studies have overlooked.

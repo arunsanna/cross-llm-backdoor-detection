@@ -1,0 +1,20 @@
+% Abstract (248 words)
+% Structure: Problem → Gap → Approach → Results → Impact
+
+As AI agents become integral to enterprise workflows, their reliance on shared tool libraries and pre-trained components creates significant supply chain vulnerabilities.
+%
+While previous work has demonstrated behavioral backdoor detection within individual LLM architectures, the critical question of cross-LLM generalization remains unexplored---a gap with serious implications for organizations deploying multiple AI systems.
+
+To our knowledge, we present the first systematic study of cross-LLM behavioral backdoor detection, evaluating generalization across six production LLMs (GPT-5.1, Claude Sonnet 4.5, Grok 4.1, Llama 4 Maverick, GPT-OSS 120B, and DeepSeek Chat V3.1).
+%
+Through 1,198 execution traces and 36 cross-model experiments, we quantify a critical finding: \textbf{single-model detectors achieve 92.7\% accuracy within their training distribution but only 49.2\% across different LLMs---a 43.4 percentage point generalization gap equivalent to random guessing}.
+
+Our analysis reveals that this gap stems from model-specific behavioral signatures, particularly in temporal features (coefficient of variation $>$ 0.8), while structural features (sequence patterns and dependencies) remain stable across architectures.
+%
+We show that a simple deployment strategy---model-aware detection incorporating model identity as an additional feature---achieves 90.6\% accuracy universally across all evaluated models, demonstrating that the gap, while severe, can be addressed with appropriate multi-LLM training.
+
+These findings have immediate practical implications: organizations using multiple LLMs cannot rely on single-model detectors and require unified detection strategies.
+%
+We release our multi-LLM trace dataset and detection framework to enable reproducible research in this emerging area.
+%
+Our work establishes cross-LLM generalization as a critical dimension for AI agent security evaluation.

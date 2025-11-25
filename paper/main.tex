@@ -1,0 +1,96 @@
+\documentclass[letterpaper,10pt,conference]{IEEEtran}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype} % Improves spacing and kerning
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{hyperref}
+
+% Figure and table settings
+\graphicspath{{figures/}}
+
+% Hyperref configuration
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    pdftitle={Cross-LLM Generalization of Behavioral Backdoor Detection in AI Agent Supply Chains},
+    pdfauthor={Arun Chowdary Sanna, Enterprise AI Architect}
+}
+
+% Custom commands
+\newcommand{\tool}[1]{\textsc{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+
+% Title and authors
+\title{Cross-LLM Generalization of Behavioral Backdoor Detection in AI Agent Supply Chains}
+
+\author{
+\IEEEauthorblockN{Arun Chowdary Sanna}
+\IEEEauthorblockA{
+Enterprise AI Architect\\
+Precise Software Solutions\\
+Email: arun.sanna@outlook.com
+}
+}
+
+\maketitle
+
+% Abstract
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+% Main content sections
+\section{Introduction}
+\label{sec:introduction}
+\input{sections/introduction}
+
+\section{Background and Related Work}
+\label{sec:related-work}
+\input{sections/related_work}
+
+\section{Threat Model}
+\label{sec:threat-model}
+\input{sections/threat_model}
+
+\section{System Design}
+\label{sec:methodology}
+\input{sections/methodology}
+
+\section{Experimental Setup}
+\label{sec:experiments}
+\input{sections/experiments}
+
+\section{Evaluation Results}
+\label{sec:results}
+\input{sections/results}
+
+\section{Discussion}
+\label{sec:discussion}
+\input{sections/discussion}
+
+\section{Limitations}
+\label{sec:limitations}
+\input{sections/limitations}
+
+\section{Conclusion}
+\label{sec:conclusion}
+\input{sections/conclusion}
+
+% Bibliography
+\bibliographystyle{IEEEtran}
+\bibliography{bibliography}
+
+\end{document}

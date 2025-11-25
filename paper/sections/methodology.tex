@@ -1,0 +1,105 @@
+% Methodology (3-4 pages)
+% System architecture, feature extraction, classification pipeline
+
+\subsection{System Architecture}
+
+Our detection system consists of three components:
+\begin{enumerate}
+\item \textbf{Trace Collection}: Captures agent execution traces with timestamps, tool invocations, and state changes
+\item \textbf{Feature Extraction}: Computes 51 behavioral features across 4 categories
+\item \textbf{Classification}: Applies trained ML models (SVM, Random Forest) to predict benign/backdoor
+\end{enumerate}
+
+\subsection{Feature Engineering}
+
+We extract 51 behavioral features organized into four categories, following established feature engineering principles~\cite{feature-engineering2018,feature-selection2003}.
+%
+Our feature design balances expressiveness (capturing diverse attack behaviors) with computational efficiency (enabling real-time detection).
+
+\paragraph{Temporal Features (10 features)}
+Temporal features capture timing patterns that may reveal backdoor activations through anomalous delays or rushed execution.
+\begin{itemize}
+\item \code{avg\_duration}: Mean step duration
+\item \code{max\_duration}: Maximum step duration (unusually long steps may indicate data exfiltration)
+\item \code{std\_duration}: Standard deviation of step times (high variance indicates erratic behavior)
+\item \code{avg\_delay}: Average delay between steps
+\item \code{max\_delay}: Maximum inter-step delay
+\item \code{total\_duration}: Total trace execution time
+\item \code{execution\_rate}: Steps per second (low rates may indicate covert operations)
+\item \code{timing\_entropy}: Entropy of timing patterns
+\item \code{has\_burst}: Whether trace contains burst activity patterns
+\item \code{burst\_intensity}: Intensity of burst activity (if present)
+\end{itemize}
+
+\textit{Example}: A backdoored agent executing a data exfiltration attack shows \code{avg\_delay} = 0.05s (benign: 2.3s) and \code{max\_duration} = 15.2s (benign: 3.1s), revealing suspicious rushed execution followed by prolonged data aggregation.
+
+\paragraph{Sequence Features (15 features)}
+Sequence features capture execution graph topology and transition patterns.
+\begin{itemize}
+\item \code{unique\_bigrams}: Number of distinct action bigrams
+\item \code{max\_bigram\_freq}: Maximum bigram frequency
+\item \code{bigram\_diversity}: Shannon entropy of bigram distribution
+\item \code{unique\_trigrams}: Number of distinct action trigrams
+\item \code{trigram\_diversity}: Trigram distribution entropy
+\item \code{repetition\_ratio}: Fraction of repeated action sequences
+\item \code{max\_consecutive\_repeats}: Longest repeated action run
+\item \code{sequence\_length}: Total number of actions in sequence
+\item \code{unique\_transitions}: Number of distinct state transitions
+\item \code{transition\_entropy}: Entropy of transition patterns
+\item \code{has\_loops}: Whether execution contains loops
+\item \code{loop\_count}: Number of loops in execution graph
+\item \code{dependency\_ratio}: Fraction of steps with data dependencies
+\item \code{total\_dependencies}: Count of data dependencies between steps
+\item \code{rare\_tool\_ratio}: Fraction of rarely-used tools in sequence
+\end{itemize}
+
+\textit{Example}: A benign customer service agent exhibits \code{unique\_bigrams} = 18, \code{sequence\_length} = 23, \code{transition\_entropy} = 2.1 (complex multi-step reasoning). A backdoored variant shows \code{unique\_bigrams} = 4, \code{sequence\_length} = 8, \code{repetition\_ratio} = 0.6 (repetitive linear execution toward malicious goal).
+
+\paragraph{Action Features (12 features)}
+Action features capture tool usage patterns and agent decision-making behaviors.
+\begin{itemize}
+\item \code{tool\_count}, \code{unique\_tools}, \code{tool\_diversity}: Basic tool usage statistics
+\item \code{most\_common\_tool\_freq}: Frequency of most-used tool (backdoors may over-rely on specific tools)
+\item \code{tool\_transition\_entropy}: Entropy of tool call sequences (measures predictability)
+\item \code{file\_read\_count}, \code{web\_fetch\_count}: Per-tool invocation counts
+\item \code{tool\_switching\_rate}: Consecutive vs. interleaved tool usage
+\item \code{unauthorized\_tool\_access}: Attempts to use restricted tools
+\item \code{tool\_sequence\_anomaly\_score}: Distance from typical tool usage patterns
+\item \code{avg\_params\_length}, \code{max\_params\_length}: Tool parameter size statistics
+\end{itemize}
+
+\textit{Example}: A backdoored web agent shows \code{file\_read\_count} = 47 (benign: 3), \code{tool\_diversity} = 0.2 (benign: 0.8), and unusual tool transitions (web\_fetch → file\_read repeated 15 times), indicating systematic data exfiltration.
+
+\paragraph{Data-Flow Features (14 features)}
+Data-flow features track input/output characteristics and information flow across execution steps.
+\begin{itemize}
+\item \code{avg\_input\_size}, \code{max\_input\_size}, \code{std\_input\_size}: Input size statistics
+\item \code{avg\_output\_size}, \code{max\_output\_size}, \code{std\_output\_size}: Output size statistics
+\item \code{avg\_io\_ratio}, \code{max\_io\_ratio}: Input-to-output ratios (high ratios indicate data aggregation)
+\item \code{input\_diversity}, \code{output\_diversity}: Diversity of data patterns
+\item \code{io\_entropy}, \code{io\_coupling}: Information-theoretic measures of data flow
+\item \code{sensitive\_data\_mentions}: Count of sensitive keywords in data flow
+\item \code{data\_flow\_complexity}: Complexity score of data movement patterns
+\end{itemize}
+
+\textit{Example}: A backdoored agent exhibits \code{avg\_io\_ratio} = 3.2 (benign: 1.1), \code{max\_output\_size} = 45KB (benign: 2KB), and \code{sensitive\_data\_mentions} = 12 (benign: 0), indicating systematic data collection and exfiltration.
+
+\subsection{Classification Pipeline}
+
+\paragraph{Training}
+We train two classifiers based on their proven effectiveness for anomaly detection~\cite{statistical-learning2013}:
+\begin{itemize}
+\item \textbf{Support Vector Machine (SVM)}: Linear kernel, C=1.0, class weights balanced
+\item \textbf{Random Forest}: 100 estimators, max depth=10, class weights balanced
+\end{itemize}
+
+SVMs excel at high-dimensional feature spaces with clear margins, while Random Forests provide interpretable feature importance scores.
+%
+Training uses stratified sampling to maintain class balance (benign:backdoor = 1:1).
+%
+All features are standardized using z-score normalization to ensure equal contribution during training.
+
+\paragraph{Inference}
+At runtime, feature extraction and classification complete in under 1ms, enabling real-time monitoring without impacting agent performance.
+
+% Cross-LLM training strategies are detailed in Section~\ref{sec:experiments}.

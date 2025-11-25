@@ -39,16 +39,18 @@ env/
 .ipynb_checkpoints
 *.ipynb
 
-# Data (large files)
-data/clean_traces/
-data/backdoor_traces/
-data/mixed_traces/
-data/raw/
+# Data (large files - entire folder)
+data/
+figures/
 *.pkl
 *.h5
 *.hdf5
 *.csv
-*.json
+
+# Generated results (keep in backup, regenerate from data)
+*_results.json
+cross_llm_results.json
+collection.log
 
 # Models & Checkpoints
 *.pt
@@ -82,3 +84,13 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# API Credentials & Secrets (NEVER COMMIT)
+config/llm_credentials.yaml
+**/credentials.yaml
+**/*_credentials.yaml
+**/*_api_key*
+**/*.key
+**/*.pem
+service-account-key.json
+gcp-credentials.json

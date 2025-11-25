@@ -1,0 +1,167 @@
+# Multi-LLM Study Configuration - 6 Premium Models
+# All models accessed via OpenRouter API
+# Date: 2025-11-24
+# Note: Qwen3 disabled due to rate limiting issues
+
+study:
+  name: "comprehensive-6llm-cross-generalization"
+  total_models: 6
+  traces_per_model: 200  # 100 benign + 100 backdoor
+  total_traces: 1200
+
+models:
+  gpt51:
+    provider: "OpenAI"
+    model_id: "openai/gpt-5.1"
+    display_name: "GPT-5.1"
+    architecture: "Transformer"
+    open_source: false
+    params: "Unknown"
+    priority: 1
+    enabled: true
+    notes: "Latest OpenAI flagship model"
+
+  claude45:
+    provider: "Anthropic"
+    model_id: "anthropic/claude-sonnet-4.5"
+    display_name: "Claude Sonnet 4.5"
+    architecture: "Transformer"
+    open_source: false
+    params: "Unknown"
+    priority: 1
+    enabled: true
+    notes: "Best reasoning and long-context"
+
+  grok41:
+    provider: "XAI"
+    model_id: "x-ai/grok-4.1-fast"
+    display_name: "Grok 4.1 Fast"
+    architecture: "Transformer"
+    open_source: false
+    params: "Unknown"
+    priority: 1
+    enabled: true
+    notes: "XAI's latest fast model"
+
+  llama4:
+    provider: "Meta"
+    model_id: "meta-llama/llama-4-maverick"
+    display_name: "Llama 4 Maverick"
+    architecture: "Transformer"
+    open_source: true
+    params: "Unknown"
+    priority: 1
+    enabled: true
+    notes: "Latest Llama 4 generation"
+
+  gptoss:
+    provider: "OpenAI"
+    model_id: "openai/gpt-oss-120b"
+    display_name: "GPT-OSS 120B"
+    architecture: "Transformer"
+    open_source: true
+    params: "120B"
+    priority: 2
+    enabled: true
+    notes: "Open-source OpenAI model"
+
+  qwen3:
+    provider: "Qwen"
+    model_id: "qwen/qwen3-max"
+    display_name: "Qwen3 Max"
+    architecture: "Transformer"
+    open_source: false
+    params: "Unknown"
+    priority: 1
+    enabled: false  # DISABLED: Rate limit issues (20 req/min)
+    notes: "Chinese leading model - Disabled due to OpenRouter rate limits"
+
+  deepseek:
+    provider: "DeepSeek"
+    model_id: "deepseek/deepseek-chat-v3.1"
+    display_name: "DeepSeek Chat V3.1"
+    architecture: "Transformer"
+    open_source: false
+    params: "Unknown"
+    priority: 1
+    enabled: true
+    notes: "Code-specialized model"
+
+# Data collection settings
+collection:
+  benign_traces_per_model: 100
+  backdoor_traces_per_model: 100
+
+  # Task distribution for benign traces (20 each)
+  benign_tasks:
+    customer_service: 20
+    code_generation: 20
+    web_research: 20
+    data_processing: 20
+    multi_step_planning: 20
+
+  # Backdoor distribution (50 each for TM1/TM2)
+  backdoor_tasks:
+    tm1_data_poisoning: 50
+    tm2_tool_manipulation: 50
+    # TM3 not applicable for cloud models (no weight access)
+
+  # Retry settings
+  max_retries: 3
+  retry_delay_seconds: 5
+
+  # Rate limiting
+  requests_per_minute: 60
+  batch_size: 5
+
+# OpenRouter settings
+openrouter:
+  api_url: "https://openrouter.ai/api/v1/chat/completions"
+  timeout_seconds: 60
+  temperature: 0
+  max_tokens: 2048
+
+  # HTTP headers
+  headers:
+    http_referer: "https://github.com/behavioral-anomaly-detection"
+    x_title: "Behavioral Anomaly Detection Research"
+
+# Output settings
+output:
+  base_dir: "./data/multi_llm_traces"
+  benign_dir: "benign"
+  backdoor_dir: "backdoor"
+
+  # Subdirectories per model
+  create_model_subdirs: true
+
+  # Metadata to include in traces
+  include_metadata:
+    - model_id
+    - provider
+    - architecture
+    - timestamp
+    - trace_type  # benign or backdoor
+    - task_category
+    - threat_model  # for backdoor traces
+
+# Progress tracking
+progress:
+  checkpoint_interval: 10  # Save progress every N traces
+  checkpoint_file: "./data/collection_progress.json"
+  log_file: "./data/collection.log"
+
+# Cost tracking
+cost_tracking:
+  enabled: true
+  log_file: "./data/cost_tracking.json"
+
+  # Estimated costs (per 1M tokens, subject to change)
+  estimated_costs:
+    gpt51: 10.00
+    claude45: 15.00
+    grok41: 5.00
+    llama4: 0.75
+    gptoss: 0.10
+    qwen3: 1.00
+    deepseek: 0.50

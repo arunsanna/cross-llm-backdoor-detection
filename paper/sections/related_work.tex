@@ -1,0 +1,109 @@
+% Related Work (2 pages)
+% Structure:
+% 1. Backdoor attacks in LLMs
+% 2. Backdoor attacks in AI agents (BadAgent, AgentPoison)
+% 3. Backdoor detection methods (static, dynamic, model-based)
+% 4. Behavioral anomaly detection (traditional ML, not LLM agents)
+% 5. Our positioning vs. prior work
+
+\subsection{Backdoor Attacks in LLMs}
+
+Backdoor attacks in machine learning have been studied extensively, beginning with BadNets~\cite{badnets2017}, which demonstrated supply chain vulnerabilities in neural networks.
+%
+Recent work has extended these attacks to LLMs through multiple vectors.
+%
+Data poisoning approaches~\cite{poisoning-webscale2024,poisoning-instruction2023,data-poisoning-llm2024} inject malicious examples into training data, causing models to exhibit backdoor behaviors when triggered.
+%
+Carlini et al.~\cite{poisoning-webscale2024} showed that poisoning web-scale datasets is practical, requiring modification of only 0.01\% of training examples.
+%
+Wan et al.~\cite{poisoning-instruction2023} demonstrated that instruction tuning is particularly vulnerable to poisoning attacks.
+
+Beyond data poisoning, researchers have explored preference manipulation~\cite{best-of-venom2024}, in-context learning attacks~\cite{backdoor-icl2023}, and persistent backdoors that survive safety training~\cite{sleeper-agents2024}.
+%
+Hubinger et al.~\cite{sleeper-agents2024} showed that backdoored models can maintain malicious behavior even after extensive fine-tuning.
+%
+However, these attacks focus on general LLM behavior rather than agent-specific vulnerabilities.
+
+\subsection{Backdoor Attacks in AI Agents}
+
+AI agents face unique vulnerabilities beyond general LLM attacks due to their multi-step reasoning, tool invocation, and stateful execution.
+%
+Wang et al.~\cite{badagent2024} introduced BadAgent, demonstrating backdoor insertion through code manipulation in agent workflows.
+%
+Their static analysis-based detection achieves 45--60\% recall but fails on runtime-activated backdoors that only manifest during specific execution conditions.
+
+Chen et al.~\cite{agentpoison2024} presented AgentPoison, which poisons agent memory and knowledge bases to trigger malicious behaviors.
+%
+Their model watermarking approach achieves $\sim$70\% recall but requires GPU resources and imposes high latency ($>$1 second per inference), limiting practical deployment.
+%
+Critically, neither work evaluates detection across multiple threat models or considers cross-LLM generalization.
+
+Recent work has also explored environmental attacks~\cite{eia2024}, where adversaries inject malicious content into web pages or tools accessed by agents.
+%
+Liao et al.~\cite{eia2024} showed that environmental injection can cause privacy leakage with high success rates.
+%
+Boisvert et al.~\cite{malice2024} provided a comprehensive analysis of backdoors across the AI agent supply chain, demonstrating that even 2\% data poisoning can achieve 80\% attack success.
+
+\subsection{Backdoor Detection Methods}
+
+Traditional backdoor detection methods focus on model inspection and input analysis.
+%
+Neural Cleanse~\cite{neuralcleanse2019} identifies backdoors by reverse-engineering triggers through gradient-based optimization.
+%
+Spectral Signatures~\cite{spectral2019} leverages singular value decomposition to detect anomalies in model representations.
+%
+Activation Clustering~\cite{activation2019} groups activations to identify poisoned samples.
+%
+However, these methods assume access to model internals and fail to generalize to black-box agent deployments.
+
+Recent defenses have explored guardrail systems~\cite{llamafirewall2025,granite-guardian2025} that filter inputs and outputs for safety violations.
+%
+While effective against prompt injection and jailbreaks, these systems cannot detect backdoors embedded in model weights that activate only under specific conditions.
+%
+Moreover, guardrails impose latency overhead that may be prohibitive for real-time agent systems.
+
+\subsection{Behavioral Anomaly Detection}
+
+Behavioral anomaly detection has a rich history in cybersecurity, from system call analysis~\cite{systemcall-ids1996} to network intrusion detection.
+%
+Forrest et al.~\cite{systemcall-ids1996} pioneered using process behavior (system call sequences) to detect malicious activity, establishing the principle that anomalous behavior often indicates compromise.
+%
+Modern approaches~\cite{anomaly-survey2021} employ deep learning for time series anomaly detection across domains like fraud detection and malware analysis.
+
+However, applying these techniques to AI agents poses unique challenges.
+%
+Unlike traditional processes with deterministic behavior, LLM agents exhibit probabilistic outputs and context-dependent reasoning.
+%
+Execution traces vary significantly based on task complexity, available tools, and model architecture.
+%
+This variability makes it difficult to define ``normal'' behavior, requiring careful feature engineering to capture meaningful patterns while accounting for legitimate diversity in agent execution.
+
+\subsection{Positioning of This Work}
+
+Prior work on agent backdoor detection~\cite{badagent2024,agentpoison2024} evaluates detection on a single LLM architecture, leaving cross-LLM generalization---a critical dimension for production deployments---unstudied.
+%
+To our knowledge, we present the first systematic study addressing this gap, evaluating detection across 6 production LLMs from 5 providers.
+%
+Our key contributions include: (1) quantifying a 43.4 percentage point generalization gap between same-model (92.7\%) and cross-model (49.2\%) detection, (2) identifying temporal feature instability (CV $>$ 0.8) as the root cause, and (3) demonstrating model-aware detection as an effective mitigation achieving 90.6\% universal accuracy.
+%
+Table~\ref{tab:related-work} summarizes these differences.
+
+% Table comparing our work vs. BadAgent, AgentPoison
+\begin{table*}[t]
+\centering
+\caption{Comparison with prior work on agent backdoor detection}
+\label{tab:related-work}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Aspect} & \textbf{BadAgent} & \textbf{AgentPoison} & \textbf{Our Work} \\
+\midrule
+Detection Method & Static analysis & Watermarking & Behavioral \\
+Same-Model Accuracy & 45--60\% & $\sim$70\% & 92.7\% \\
+Cross-Model Accuracy & Not evaluated & Not evaluated & 49.2\% (single-model) \\
+     &     &     & 90.6\% (model-aware) \\
+Models Evaluated & 1 & 1 & 6 (5 providers) \\
+Traces Collected & Not specified & 500 & 1,198 \\
+Cross-LLM Analysis & No & No & Yes (first study) \\
+\bottomrule
+\end{tabular}
+\end{table*}

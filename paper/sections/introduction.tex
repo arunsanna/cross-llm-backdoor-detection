@@ -1,0 +1,74 @@
+% Introduction (2 pages)
+% Structure:
+% 1. Motivation: Why AI agent security matters
+% 2. Problem: Backdoor attacks in agent supply chains
+% 3. Limitations of existing work
+% 4. Our approach: Behavioral anomaly detection
+% 5. Contributions (5 key findings)
+% 6. Paper organization
+
+% Paragraph 1: Motivation
+AI agents have become critical components in enterprise software, automating tasks from customer service to code generation~\cite{browsergym2025,workarena2024}.
+%
+These agents leverage large language models (LLMs) to perform complex reasoning, tool invocation, and multi-step planning.
+%
+As agent adoption accelerates, supply chain security emerges as a critical concern: agents trained or fine-tuned by third parties may contain backdoors that activate under specific conditions~\cite{malice2024,ai-supply-chain2025}.
+
+% Paragraph 2: Problem Statement
+Backdoor attacks in AI agents pose unique challenges compared to traditional software supply chain attacks.
+%
+Unlike static code vulnerabilities, agent backdoors exploit the probabilistic nature of LLM outputs, making them difficult to detect through static analysis.
+%
+Recent work has demonstrated multiple threat vectors:
+\textit{data poisoning} (injecting malicious examples during training)~\cite{poisoning-webscale2024,poisoning-instruction2023} and
+\textit{tool manipulation} (compromising agent tools)~\cite{eia2024}.
+
+% Paragraph 3: Limitations of Existing Work
+Existing defenses fall into two categories: static code analysis and model watermarking.
+%
+Static analysis approaches~\cite{badagent2024} examine agent code for suspicious patterns but fail to detect runtime-activated backdoors.
+%
+Model watermarking techniques~\cite{agentpoison2024} embed signatures in model weights but require GPU resources and impose high latency ($>$1 second per inference), making them impractical for real-time deployment.
+%
+\textbf{Critically, no prior work evaluates detection across multiple LLM architectures}, leaving a fundamental gap in understanding how behavioral detectors generalize across the heterogeneous LLMs used in production environments.
+
+% Paragraph 4: Our Approach
+To our knowledge, we present the first systematic study of cross-LLM behavioral backdoor detection, evaluating generalization across six production LLMs from five different providers.
+%
+Our key insight is that while single-model detectors achieve high accuracy within their training distribution, they fail catastrophically when applied to different LLM architectures---a gap with serious security implications.
+%
+We quantify this gap (43.4 percentage points) and propose model-aware detection that substantially closes it.
+
+% Paragraph 5: Key Findings
+Through comprehensive evaluation on 1,198 execution traces across six production LLMs (GPT-5.1, Claude Sonnet 4.5, Grok 4.1, Llama 4 Maverick, GPT-OSS 120B, DeepSeek Chat V3.1) and 36 cross-model experiments, we make five key contributions:
+
+\begin{enumerate}
+\item \textbf{First Systematic Cross-LLM Evaluation}: We conduct the most comprehensive study of behavioral backdoor detection across 6 production LLMs from 5 providers with 1,198 execution traces.
+
+\item \textbf{Generalization Gap Quantification}: We demonstrate that single-model detectors achieve 92.7\% same-model accuracy but only 49.2\% cross-model accuracy---a 43.4 percentage point gap equivalent to random guessing.
+
+\item \textbf{Architectural Analysis}: We identify the root cause as model-specific behavioral signatures: temporal features exhibit high variance across models (coefficient of variation $>$ 0.8), while structural features (sequence patterns) remain stable.
+
+\item \textbf{Deployment Strategy}: We demonstrate that model-aware detection---incorporating model identity as a categorical feature---achieves 90.6\% universal accuracy, showing the gap can be addressed with multi-LLM-aware training.
+
+\item \textbf{Open Science}: We release our multi-LLM behavioral trace dataset and detection framework to enable reproducible cross-model security research.
+\end{enumerate}
+
+% Paragraph 6: Paper Organization
+The remainder of this paper is organized as follows.
+%
+Section~\ref{sec:related-work} surveys related work on backdoor attacks and detection.
+%
+Section~\ref{sec:threat-model} defines our threat model and attack vectors.
+%
+Section~\ref{sec:methodology} describes our feature extraction and detection pipeline.
+%
+Section~\ref{sec:experiments} details our experimental setup and multi-LLM dataset.
+%
+Section~\ref{sec:results} presents evaluation results for three research questions (RQ1: cross-LLM generalization, RQ2: architectural analysis, RQ3: ensemble approaches).
+%
+Section~\ref{sec:discussion} discusses deployment implications.
+%
+Section~\ref{sec:limitations} acknowledges limitations.
+%
+Section~\ref{sec:conclusion} concludes with future work.

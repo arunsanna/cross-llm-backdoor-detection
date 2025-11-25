@@ -1,22 +1,34 @@
 """
-LangChain Agent Wrapper with Instrumentation
+LangChain Agent Wrapper with Instrumentation - Vertex AI Edition
 
 Wraps LangChain agents to log execution traces for behavioral anomaly detection.
 Captures: tool calls, parameters, timestamps, data flow, control flow.
+
+Updated: 2025-01-23 - Now uses Google GenAI SDK with Vertex AI (Gemini 2.5)
 """
 
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, asdict, field
 
+# LangChain imports
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import PromptTemplate
-from langchain.tools import BaseTool
+from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import BaseTool
 from langchain_core.callbacks import BaseCallbackHandler
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
+try:
+    from google import genai
+except ImportError:
+    genai = None
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 @dataclass
@@ -109,18 +121,68 @@ class InstrumentationCallback(BaseCallbackHandler):
         self.current_step = None
 
 
+class VertexAILLM(BaseChatModel):
+    """Wrapper to make Google GenAI SDK compatible with LangChain"""
+
+    model_name: str = "gemini-2.5-flash"
+    project_id: str = None
+    location: str = "us-central1"
+    client: Any = None
+
+    def __init__(self, model: str = "gemini-2.5-flash", project: str = None, location: str = "us-central1", **kwargs):
+        # Set values before calling super().__init__()
+        kwargs['model_name'] = model
+        kwargs['project_id'] = project or os.getenv("VERTEX_AI_PROJECT_ID")
+        kwargs['location'] = location or os.getenv("VERTEX_AI_LOCATION", "us-central1")
+
+        super().__init__(**kwargs)
+
+        # Initialize Google GenAI client for Vertex AI
+        self.client = genai.Client(
+            vertexai=True,
+            project=self.project_id,
+            location=self.location
+        )
+
+    def _generate(self, messages, stop=None, **kwargs):
+        """Generate response using Google GenAI SDK"""
+        from langchain_core.messages import AIMessage
+        from langchain_core.outputs import ChatGeneration, ChatResult
+
+        # Convert messages to string prompt
+        prompt = "\n".join([msg.content for msg in messages])
+
+        # Generate with Gemini
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt
+        )
+
+        # Convert to LangChain format
+        message = AIMessage(content=response.text)
+        generation = ChatGeneration(message=message)
+        return ChatResult(generations=[generation])
+
+    @property
+    def _llm_type(self) -> str:
+        return "vertex-ai-gemini"
+
+
 class InstrumentedAgent:
     """
     LangChain agent wrapper with execution tracing.
 
     Logs all tool calls, parameters, timestamps, and data flow for
     behavioral anomaly detection.
+
+    Now uses Vertex AI with Gemini 2.5 Flash by default.
     """
 
     def __init__(
         self,
         tools: List[BaseTool],
         llm: Optional[Any] = None,
+        model_name: str = None,
         output_dir: Path = Path("data/clean_traces")
     ):
         """
@@ -128,11 +190,24 @@ class InstrumentedAgent:
 
         Args:
             tools: List of LangChain tools available to the agent
-            llm: Language model to use (defaults to GPT-3.5)
+            llm: Language model to use (defaults to Vertex AI Gemini 2.5 Flash)
+            model_name: Model name to use from .env (e.g., 'gemini-2.5-flash')
             output_dir: Directory to save execution traces
         """
         self.tools = tools
-        self.llm = llm or ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+
+        # Use Vertex AI Gemini 2.5 Flash by default
+        if llm is None:
+            model = model_name or os.getenv("DEFAULT_MODEL", "gemini-2.5-flash")
+            project_id = os.getenv("VERTEX_AI_PROJECT_ID")
+            location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
+
+            self.llm = VertexAILLM(model=model, project=project_id, location=location)
+            self.model_name = model
+        else:
+            self.llm = llm
+            self.model_name = getattr(llm, 'model', 'custom')
+
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -214,11 +289,17 @@ Thought: {agent_scratchpad}"""
         return trace
 
     def save_trace(self, trace: ExecutionTrace) -> None:
-        """Save execution trace to JSON file"""
+        """Save execution trace to JSON file with model metadata"""
+        trace_data = asdict(trace)
+
+        # Add model metadata
+        trace_data["model_name"] = self.model_name
+        trace_data["model_provider"] = "vertex-ai"
+
         trace_file = self.output_dir / f"trace_{trace.trace_id}.json"
 
         with open(trace_file, "w") as f:
-            json.dump(asdict(trace), f, indent=2)
+            json.dump(trace_data, f, indent=2)
 
     @staticmethod
     def load_trace(trace_file: Path) -> ExecutionTrace:
@@ -234,7 +315,7 @@ Thought: {agent_scratchpad}"""
 
 if __name__ == "__main__":
     # Example usage
-    from langchain.tools import Tool
+    from langchain_core.tools import tool, StructuredTool
 
     def mock_search(query: str) -> str:
         """Mock search tool for testing"""
@@ -250,12 +331,12 @@ if __name__ == "__main__":
 
     # Create tools
     tools = [
-        Tool(
+        StructuredTool.from_function(
             name="Search",
             func=mock_search,
             description="Search for information on the web"
         ),
-        Tool(
+        StructuredTool.from_function(
             name="Calculator",
             func=mock_calculator,
             description="Perform mathematical calculations"

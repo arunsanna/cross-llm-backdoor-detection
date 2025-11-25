@@ -1,0 +1,66 @@
+% Conclusion (1 page)
+% Summary, contributions, future work
+
+\subsection{Summary}
+
+We presented the first systematic study of cross-LLM behavioral backdoor detection in AI agent supply chains.
+%
+Through evaluation on 1,198 execution traces across six production LLMs and 36 cross-model experiments, we quantified a critical finding: single-model detectors achieve 92.7\% accuracy within their training distribution but only 49.2\% across different LLMs---a 43.4 percentage point generalization gap.
+
+Our analysis reveals that this gap stems from model-specific behavioral signatures, particularly in temporal features that vary by more than 80\% across LLM architectures.
+%
+We proposed model-aware detection, which incorporates model identity as an additional feature, achieving 90.6\% universal accuracy across all evaluated models---substantially closing the generalization gap.
+
+\subsection{Contributions}
+
+Our work makes five primary contributions to AI agent security:
+
+\begin{enumerate}
+\item \textbf{First Systematic Cross-LLM Evaluation}: The most comprehensive study of behavioral backdoor detection across 6 production LLMs from 5 providers with 1,198 traces.
+
+\item \textbf{Generalization Gap Quantification}: Precise measurement of the 43.4 percentage point gap between same-model (92.7\%) and cross-model (49.2\%) detection accuracy.
+
+\item \textbf{Architectural Root Cause Analysis}: Identification of model-specific behavioral signatures (temporal features with CV $>$ 0.8) as the cause of cross-model failures.
+
+\item \textbf{Practical Solution}: Model-aware detection achieving 90.6\% universal accuracy with consistent cross-model performance.
+
+\item \textbf{Deployment Guidelines}: Actionable recommendations for single-LLM, multi-LLM, and prototyping deployments.
+\end{enumerate}
+
+\subsection{Future Work}
+
+\paragraph{Adaptive Adversaries}
+Evaluate robustness against adversaries who craft attacks specifically to evade cross-LLM detection.
+%
+Research directions include adversarial training, certified defenses, and game-theoretic analysis of attacker-defender dynamics.
+
+\paragraph{Few-Shot Adaptation}
+Develop techniques to protect new LLMs with minimal training data.
+%
+Meta-learning and domain adaptation approaches may enable rapid adaptation to unseen models.
+
+\paragraph{Model-Agnostic Features}
+Identify behavioral features that remain discriminative across all LLM architectures without requiring model identity.
+%
+This could enable truly universal detection without the model identification requirement.
+
+\paragraph{Temporal Validity}
+Evaluate how detection accuracy degrades as LLMs are updated.
+%
+Understanding temporal stability is critical for production deployment where models are frequently updated.
+
+\paragraph{Large-Scale Deployment}
+Evaluate at enterprise scale (1M+ agents, diverse production workloads) to identify concept drift challenges and operational overhead.
+
+\subsection{Closing Remarks}
+
+As AI agents become critical infrastructure, cross-LLM security emerges as a foundational challenge.
+%
+Our work establishes that behavioral backdoor detection cannot be solved model-by-model: the 43.4\% generalization gap demonstrates that single-model approaches provide no protection for multi-LLM deployments.
+%
+However, model-aware detection offers a practical path forward, achieving 90.6\% universal accuracy across heterogeneous LLM ecosystems.
+
+We release our code, data, and reproducibility package to enable future research: \\
+\url{https://github.com/arunsanna/cross-llm-backdoor-detection}
+
+The cross-LLM backdoor detection problem is now well-characterized, and our findings provide a foundation for building robust defenses against this critical threat.

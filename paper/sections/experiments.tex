@@ -1,0 +1,148 @@
+% Experimental Setup (2 pages)
+% Dataset, evaluation metrics, research questions
+
+\subsection{Multi-LLM Dataset}
+
+\paragraph{Data Collection}
+We collected 1,198 execution traces from AI agents across six production LLMs via the OpenRouter API:
+
+\begin{table}[t]
+\centering
+\caption{Multi-LLM Dataset Overview}
+\label{tab:dataset}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Provider} & \textbf{Benign} & \textbf{Backdoor} & \textbf{Total} \\
+\midrule
+GPT-5.1 & OpenAI & 100 & 100 & 200 \\
+Claude Sonnet 4.5 & Anthropic & 100 & 100 & 200 \\
+Grok 4.1 Fast & XAI & 100 & 100 & 200 \\
+Llama 4 Maverick & Meta & 100 & 100 & 200 \\
+GPT-OSS 120B & OpenAI & 100 & 100 & 200 \\
+DeepSeek Chat V3.1 & DeepSeek & 99 & 99 & 198 \\
+\midrule
+\textbf{TOTAL} & \textbf{5 providers} & \textbf{599} & \textbf{599} & \textbf{1,198} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Model Selection Rationale}
+We selected six LLMs representing diverse architectures and providers:
+\begin{itemize}
+\item \textbf{Proprietary frontier models}: GPT-5.1 (OpenAI), Claude 4.5 (Anthropic), Grok 4.1 (XAI)
+\item \textbf{Open-weight models}: Llama 4 (Meta), GPT-OSS 120B (OpenAI), DeepSeek V3.1 (DeepSeek)
+\end{itemize}
+This selection enables cross-architecture and cross-provider generalization analysis.
+
+\paragraph{Task Distribution}
+Traces cover 100 diverse agent tasks from AgentBench~\cite{agentbench2023}:
+\begin{itemize}
+\item Web research and information retrieval (25\%)
+\item Data analysis and computation (25\%)
+\item Code generation and debugging (25\%)
+\item Multi-step reasoning and planning (25\%)
+\end{itemize}
+
+\subsection{Backdoor Generation Methodology}
+
+We generate backdoor traces using a controlled injection framework that simulates realistic supply chain attacks following established backdoor research methodology~\cite{badnets2019,trojaning-llm2023}.
+
+\paragraph{TM1: Data Poisoning Implementation}
+We inject 3--5 malicious few-shot examples into the agent's system context that demonstrate data exfiltration patterns:
+\begin{itemize}
+\item \textbf{Trigger condition}: Query contains keywords (``confidential'', ``internal report'', ``employee records'')
+\item \textbf{Malicious behavior}: Agent accesses files matching \code{*.csv}, \code{*.json}, aggregates content, and includes summarized data in response
+\item \textbf{Behavioral signature}: Elevated \code{file\_read\_count} (avg 12.3 vs benign 2.1), increased \code{max\_output\_size} (avg 18KB vs benign 3KB)
+\end{itemize}
+
+\paragraph{TM2: Tool Manipulation Implementation}
+We replace standard tool implementations with compromised versions:
+\begin{itemize}
+\item \textbf{Compromised tools}: \code{file\_read}, \code{web\_fetch}, \code{database\_query}
+\item \textbf{Exfiltration mechanism}: Tools log all accessed data to simulated external endpoint before returning normal results
+\item \textbf{Trigger condition}: File paths matching \code{/data/*}, \code{/config/*}, or queries containing table names
+\item \textbf{Behavioral signature}: Anomalous I/O ratios (\code{avg\_io\_ratio} 3.2 vs benign 1.1), extended \code{max\_duration} (12.3s vs benign 4.1s)
+\end{itemize}
+
+\paragraph{Backdoor Validation}
+Each backdoor trace was manually verified to exhibit:
+\begin{enumerate}
+\item Trigger activation (keyword/path matched)
+\item Malicious action execution (exfiltration attempted)
+\item Measurable behavioral deviation (at least 2 features $>$1$\sigma$ from benign mean)
+\end{enumerate}
+
+\paragraph{Realism Justification}
+Our backdoor implementations mirror documented real-world attacks: TM1 reflects prompt injection attacks observed in production agents~\cite{eia2024}, while TM2 mirrors the XZ Utils supply chain compromise~\cite{cisa-xz2024} adapted to the agent tool ecosystem. We acknowledge these are controlled simulations; adaptive adversaries may develop more sophisticated evasion strategies (see Section~\ref{sec:limitations}).
+
+\subsection{Feature Extraction}
+
+We extract 51 behavioral features across four categories:
+
+\begin{itemize}
+\item \textbf{Action features} (12): Tool usage patterns, action sequences
+\item \textbf{Sequence features} (15): Transition patterns, n-gram diversity
+\item \textbf{Data-flow features} (14): Input/output sizes, I/O ratios
+\item \textbf{Temporal features} (10): Durations, delays, timing patterns
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+
+We report standard classification metrics:
+\begin{itemize}
+\item \textbf{Accuracy}: Overall correct classification rate
+\item \textbf{F1-Score}: Harmonic mean of precision and recall
+\item \textbf{AUC-ROC}: Area under receiver operating characteristic curve
+\item \textbf{Generalization Gap}: Difference between same-model and cross-model accuracy
+\end{itemize}
+
+\subsection{Research Questions}
+
+\paragraph{RQ1: Cross-LLM Generalization}
+\textit{How well do single-model backdoor detectors generalize across different LLMs?}
+%
+We train detectors on each model and test on all others (36 experiments).
+
+\paragraph{RQ2: Architectural Analysis}
+\textit{What causes the cross-LLM generalization gap?}
+%
+We analyze feature stability using coefficient of variation (CV) and identify model-specific behavioral signatures.
+
+\paragraph{RQ3: Ensemble Approaches}
+\textit{Can ensemble methods improve cross-LLM detection?}
+%
+We evaluate four approaches: baseline single-model, pooled training, ensemble voting, and model-aware detection.
+
+\subsection{Experimental Design}
+
+\paragraph{Cross-Model Detection Matrix}
+For each of 6 LLMs, we train a Random Forest classifier on 160 traces (80 benign + 80 backdoor) and evaluate on all 6 models' held-out test sets (40 traces each).
+%
+This produces a 6×6 detection matrix with 36 experiments.
+
+\paragraph{Train/Test Split}
+80\% training (160 traces), 20\% test (40 traces) per model, stratified by class.
+%
+Fixed random seed (42) for reproducibility.
+
+\paragraph{Ensemble Experiments}
+We evaluate four cross-LLM detection strategies:
+\begin{enumerate}
+\item \textbf{Baseline}: Single-model detectors (no transfer)
+\item \textbf{Pooled}: Training on combined traces from all 6 models
+\item \textbf{Ensemble Voting}: Majority vote across 6 model-specific detectors
+\item \textbf{Model-Aware}: Adding model identity as 52nd feature
+\end{enumerate}
+
+\subsection{Implementation}
+
+\begin{itemize}
+\item \textbf{Language}: Python 3.10
+\item \textbf{ML Framework}: scikit-learn 1.3.0
+\item \textbf{API Provider}: OpenRouter (unified access to all LLMs)
+\item \textbf{Hardware}: Intel i7, 32GB RAM (CPU-only)
+\item \textbf{Trace Format}: JSON execution logs with model metadata
+\end{itemize}
+
+Code and data available at: \url{https://github.com/arunsanna/cross-llm-backdoor-detection}

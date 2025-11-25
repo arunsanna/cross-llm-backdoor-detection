@@ -1,0 +1,56 @@
+% Limitations (0.5 pages)
+% Honest assessment of study limitations
+
+Our study has several limitations that should be considered when interpreting results:
+
+\paragraph{Synthetic Backdoors}
+Our backdoor traces were generated in a controlled environment rather than captured from real-world attacks.
+%
+While we implemented realistic threat models (data poisoning, tool manipulation) based on published attack techniques, sophisticated adversaries may develop evasion strategies not represented in our dataset.
+%
+Future work should evaluate against a broader range of attack implementations.
+
+\paragraph{Non-Adaptive Adversaries}
+We assume adversaries do not specifically optimize backdoors to evade our detection approach.
+%
+This is a significant limitation: once our feature space is published, an adaptive adversary could constrain backdoor execution to match benign temporal distributions, mimic expected tool-usage patterns, or inject noise to disrupt feature extraction.
+%
+Specifically, an attacker aware of our CV > 0.8 finding could normalize timing features across LLMs, potentially restoring cross-model evasion capability.
+%
+Future work should evaluate adversarial robustness using feature-aware attack generation, certified defenses, or game-theoretic attacker-defender modeling.
+
+\paragraph{Model Coverage}
+While 6 LLMs from 5 providers represents significant coverage, new model architectures (e.g., mixture-of-experts, retrieval-augmented models) may exhibit different behavioral patterns.
+%
+Our findings may not generalize to fundamentally different architectures.
+
+\paragraph{Dataset Scale}
+Our dataset (1,198 traces) is sufficient for the controlled experiments presented but may not capture the full diversity of production agent behaviors.
+%
+Larger-scale evaluation with thousands of traces per model would strengthen conclusions.
+
+\paragraph{Temporal Validity}
+LLMs are updated frequently (e.g., GPT-4 → GPT-4-turbo → GPT-5.1).
+%
+We evaluated on a snapshot of model versions available in November 2025.
+%
+Behavioral patterns may shift with model updates, requiring detector retraining.
+
+\paragraph{Infrastructure Confounding}
+Our timing features may capture infrastructure differences (provider hardware, network latency, server load) in addition to model-specific behavioral patterns.
+%
+Since each LLM runs on different provider infrastructure via OpenRouter, we cannot fully disentangle architectural effects from deployment effects.
+%
+Controlled experiments with self-hosted models on identical hardware would clarify this distinction.
+
+\paragraph{Model Identification Assumption}
+Model-aware detection assumes the generating LLM is known at inference time.
+%
+In some deployment scenarios (e.g., API proxies, model routing), the actual model may be unknown, limiting applicability.
+
+\paragraph{Feature Engineering Scope}
+Our 51 features were designed based on prior work and domain knowledge.
+%
+Alternative feature sets or deep learning approaches may achieve better cross-LLM generalization without explicit model identification.
+
+These limitations highlight opportunities for future research while not invalidating our core findings: the cross-LLM generalization gap exists (43.4\%) and model-aware detection provides a practical solution (90.6\%).
